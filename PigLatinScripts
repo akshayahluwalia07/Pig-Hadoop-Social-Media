@@ -1,0 +1,91 @@
+SOCIAL MEDIA SOLUTION – PIG
+1.I have interpreted some requirements of the project in 2 different ways and would be posting two solutions based on my understanding for questions 2,3 and 4. Question 1 would just have 1 solution for it.
+2.Solution 1 - considers ‘at’ time of answer as the sole metric to do the calculations e.g. to calculate questions answered within 1 hour, average time to answer questions.
+3.Solution 2 - considers two metrics to calculate the time to answer questions where ‘at’ is the time of answer and ‘qt’ is the time of question. The two date time objects will be subtracted to just get the hours, minutes and seconds which would correspond to the time taken to answer the question for Q 2 and for Q 3 and 4 the difference between the hours will be used to get to the result.
+4.I have provided 2 solutions just for my own safety to place both the approaches that I thought of to be presented before the team.
+//Q.1 Top ten most commonly used tags in this data set.
+Answer –
+1. Load the data into the relations -
+socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
+2. Split the tags into words
+tagcount = FOREACH socialmedia GENERATE FLATTEN(TOKENIZE(tags)) as words; 3. Group the words
+taggroup = GROUP tagcount BY words;
+4. get the wordcount by using Count Operator
+wordcount = FOREACH taggroup GENERATE group, COUNT(tagcount) as tagscount;
+5.Sort the wordcount by DESC based on their count topwords = ORDER wordcount BY tagscount DESC;
+6.Get the top 10 words used from the above dataset. top10words = LIMIT topwords 10;
+DUMP top10words;
+
+// Q.2 Average time to answer questions
+Solution 1 – Just using the ‘at’ parameter to calculate time to answer.
+Answer.
+1. Load the data into the relations -
+socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
+2. Group the dataset by qid
+groupqid = GROUP socialmedia BY qid;
+3. Calculate the average time for ‘at’ parameter
+avgtimeq = FOREACH groupqid GENERATE group, socialmedia.qid as qid, AVG(socialmedia.atime) as average; 4. Convert the epoch time into Date Time object
+avgtimeqfinal = FOREACH avgtimeq GENERATE qid, ToDate((long)average*1000) as avganswertime; DUMP avgtimeqfinal;
+
+Solution 2 – Using ‘qt’ and ‘at’ parameters to calculate average time. The two date time objects will be subtracted to just get the hours, minutes and seconds which would correspond to the time taken to answer the question.
+Answer –
+1. Load the data into the relations -
+socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
+2. Group the dataset by qid
+groupqid = GROUP socialmedia BY qid;
+3. Calculate the average time for ‘at’ parameter
+avgtimeq = FOREACH groupqid GENERATE group, socialmedia.qid as qid, AVG(socialmedia.atime) as averageans, AVG(socialmedia.qtime) as averageques;
+4. Convert the epoch time into Date Time object
+avgtimeqfinal = FOREACH avgtimeq GENERATE qid, ToDate((long)averageans*1000) as avganswertime, ToDate((long)averageques*1000) as avgquestime;
+5. Get the difference between two date time objects to get the hours, minutes and seconds.
+avgtimefinal1 = FOREACH avgtimeqfinal GENERATE qid, HoursBetween(avganswertime,avgquestime) as hours,MinutesBetween(avganswertime,avgquestime) as minutes, SecondsBetween(avganswertime,avgquestime) as seconds;
+DUMP avgtimefinal1;
+
+// Q 3 – Number of questions which got answered within one hour –
+Solution 1 – Just using the ‘at’ parameter to calculate time to answer. 1. Load the data into the relations -
+socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
+2. Convert the epoch time into Date Time object
+timeq1 = FOREACH socialmedia GENERATE qid as questions, ToDate((long)atime*1000) as timeq; 3. Get hours from the date time object.
+hours = FOREACH timeq1 GENERATE questions as questions, timeq as timeq, GetHour(timeq) as hour; hour1less = FILTER hours by hour <= 1;
+DUMP hour1less;
+
+Solution 2 – Using ‘qt’ and ‘at’ parameters to calculate average time. The two date time objects will be subtracted to get the difference between the hours and filter which are within 1.
+Answer –
+1. Convert epoch time to ISO date format and store it in a data-set.
+socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
+timedata = FOREACH socialmedia GENERATE ToDate(atime*1000) as atimenew, ToDate(qtime*1000) as qtimenew, qid;
+2. Get the time-difference after converting to date format.
+timedifference = FOREACH timedata GENERATE HoursBetween(atimenew,qtimenew) AS timediff,qid;
+3.Filter records which have hours less than 1
+qlessthan1hr = FILTER timedifference BY (timediff<=1);
+4.Group the records for counting the records. onehrgrp = GROUP qlessthan1hr ALL;
+5.Count the no of records
+RECORD_COUNT = FOREACH onehrgrp GENERATE COUNT(qlessthan1hr);
+Result –
+(194251)
+6.We can also count the number of distinct qid’s. Dist = DISTINCT qlessthan1hr;
+7.After using the same method above distinct count comes to – (82716).
+// Q 4 Tags of questions which got answered within 1 hour.
+Solution 1 – Just using the ‘at’ parameter to calculate time to answer. 1. Load the data into the relations -
+socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
+2. Convert the epoch time into Date Time object
+timeq1 = FOREACH socialmedia GENERATE qid as questions, ToDate((long)atime*1000) as timeq, tags; 3. Tokenize, flatten the words and get the hours.
+tagcount = FOREACH timeq1 GENERATE TOKENIZE(tags), GetHour(timeq) as hour, questions as q; tagsf = FOREACH tagcount GENERATE FLATTEN($0) AS tag, q as q, hour as hour;
+4. Filter tags within 1 hour.
+tags1hr = FILTER tagsf by hour <= 1;
+5. Sort the tags.
+tags1hrorder = ORDER tags1hr by tag; DUMP tags1hrorder;
+
+Solution 2 – Using ‘qt’ and ‘at’ parameters to calculate average time. The two date time objects will be subtracted to get the difference between the hours and filter which are within 1.
+Answer –
+1. Load the data into the relations -
+socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
+2. Convert the epoch time into Date Time object
+timeq1 = FOREACH socialmedia GENERATE qid as questions, ToDate((long)atime*1000) as timea, ToDate((long)qtime*1000) as timeq, tags;
+3. Tokenize, flatten the words and get the hours difference.
+tagcount = FOREACH timeq1 GENERATE TOKENIZE(tags), HoursBetween(timea,timeq) as hour, questions as q;
+tagsf = FOREACH tagcount GENERATE FLATTEN($0) AS tag, q as q, hour as hour;
+
+4. Filter tags within 1 hour.
+tags1hr = FILTER tagsf by hour <= 1; 5. Sort the tags.
+tags1hrorder = ORDER tags1hr by tag; DUMP tags1hrorder;
