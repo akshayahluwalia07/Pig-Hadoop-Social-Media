@@ -4,7 +4,7 @@ SOCIAL MEDIA SOLUTION – PIG
 3.Solution 2 - considers two metrics to calculate the time to answer questions where ‘at’ is the time of answer and ‘qt’ is the time of question. The two date time objects will be subtracted to just get the hours, minutes and seconds which would correspond to the time taken to answer the question for Q 2 and for Q 3 and 4 the difference between the hours will be used to get to the result.
 4.I have provided 2 solutions just for my own safety to place both the approaches that I thought of to be presented before the team.
 //Q.1 Top ten most commonly used tags in this data set.
-Answer –
+Answer to the following - 
 1. Load the data into the relations -
 socialmedia = LOAD 'socialmedia.txt' USING PigStorage() as (norecords:long, qid:chararray,quserid:chararray, qscore:int, qtime:long, tags:chararray, qviews:long, qanswers:long, aid:chararray, auserid:chararray, ascore:int,atime:long);
 2. Split the tags into words
